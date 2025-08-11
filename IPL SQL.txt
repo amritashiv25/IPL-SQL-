@@ -1,0 +1,375 @@
+Enter password: ***************
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 11
+Server version: 8.0.40 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2024, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database match;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'match' at line 1
+mysql> CREATE DATABASE MATCH;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'MATCH' at line 1
+mysql> CREATE DATABASE MATCH1;
+Query OK, 1 row affected (0.04 sec)
+
+mysql> USE MATCH1;
+Database changed
+mysql> CREATE TABLE IPL_Matches (
+    ->     match_id INT PRIMARY KEY,
+    ->     season INT,
+    ->     team1 VARCHAR(50),
+    ->     team2 VARCHAR(50),
+    ->     winner VARCHAR(50),
+    ->     venue VARCHAR(100),
+    ->     runs_team1 INT,
+    ->     runs_team2 INT,
+    ->     wickets_team1 INT,
+    ->     wickets_team2 INT
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> INSERT INTO IPL_Matches VALUES
+    -> (1, 2022, 'MI', 'CSK', 'MI', 'Wankhede Stadium', 180, 175, 5, 6),
+    -> (2, 2022, 'RCB', 'KKR', 'KKR', 'Eden Gardens', 150, 151, 8, 7),
+    -> (3, 2023, 'CSK', 'GT', 'GT', 'Narendra Modi Stadium', 200, 201, 4, 3),
+    -> (4, 2023, 'MI', 'RCB', 'MI', 'Wankhede Stadium', 190, 185, 3, 5),
+    -> (5, 2023, 'GT', 'KKR', 'GT', 'Eden Gardens', 170, 165, 6, 7);
+Query OK, 5 rows affected (0.02 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> SELECT winner, COUNT(*) AS total_wins
+    -> FROM IPL_Matches
+    -> GROUP BY winner
+    -> ORDER BY total_wins DESC;
++--------+------------+
+| winner | total_wins |
++--------+------------+
+| MI     |          2 |
+| GT     |          2 |
+| KKR    |          1 |
++--------+------------+
+3 rows in set (0.01 sec)
+
+mysql> SELECT *
+    -> FROM IPL_Matches
+    -> WHERE season = 2023;
++----------+--------+-------+-------+--------+-----------------------+------------+------------+---------------+---------------+
+| match_id | season | team1 | team2 | winner | venue                 | runs_team1 | runs_team2 | wickets_team1 | wickets_team2 |
++----------+--------+-------+-------+--------+-----------------------+------------+------------+---------------+---------------+
+|        3 |   2023 | CSK   | GT    | GT     | Narendra Modi Stadium |        200 |        201 |             4 |             3 |
+|        4 |   2023 | MI    | RCB   | MI     | Wankhede Stadium      |        190 |        185 |             3 |             5 |
+|        5 |   2023 | GT    | KKR   | GT     | Eden Gardens          |        170 |        165 |             6 |             7 |
++----------+--------+-------+-------+--------+-----------------------+------------+------------+---------------+---------------+
+3 rows in set (0.00 sec)
+
+mysql> SELECT DISTINCT venue
+    -> FROM IPL_Matches;
++-----------------------+
+| venue                 |
++-----------------------+
+| Wankhede Stadium      |
+| Eden Gardens          |
+| Narendra Modi Stadium |
++-----------------------+
+3 rows in set (0.00 sec)
+
+mysql> SELECT match_id, season, team1 AS team, runs_team1 AS runs
+    -> FROM IPL_Matches
+    -> WHERE runs_team1 = (SELECT MAX(runs_team1) FROM IPL_Matches)
+    -> UNION
+    -> SELECT match_id, season, team2 AS team, runs_team2 AS runs
+    -> FROM IPL_Matches
+    -> WHERE runs_team2 = (SELECT MAX(runs_team2) FROM IPL_Matches);
++----------+--------+------+------+
+| match_id | season | team | runs |
++----------+--------+------+------+
+|        3 |   2023 | CSK  |  200 |
+|        3 |   2023 | GT   |  201 |
++----------+--------+------+------+
+2 rows in set (0.01 sec)
+
+mysql> SELECT COUNT(*) AS matches_at_wankhede
+    -> FROM IPL_Matches
+    -> WHERE venue = 'Wankhede Stadium';
++---------------------+
+| matches_at_wankhede |
++---------------------+
+|                   2 |
++---------------------+
+1 row in set (0.01 sec)
+
+mysql> SELECT AVG(runs_team1) AS avg_runs_team1
+    -> FROM IPL_Matches;
++----------------+
+| avg_runs_team1 |
++----------------+
+|       178.0000 |
++----------------+
+1 row in set (0.01 sec)
+
+mysql> SELECT match_id, team2, runs_team2
+    -> FROM IPL_Matches
+    -> WHERE runs_team2 > 180;
++----------+-------+------------+
+| match_id | team2 | runs_team2 |
++----------+-------+------------+
+|        3 | GT    |        201 |
+|        4 | RCB   |        185 |
++----------+-------+------------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT COUNT(*) AS matches_played
+    -> FROM IPL_Matches
+    -> WHERE team1 = 'MI' OR team2 = 'MI';
++----------------+
+| matches_played |
++----------------+
+|              2 |
++----------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT match_id, team1, team2, ABS(runs_team1 - runs_team2) AS run_difference
+    -> FROM IPL_Matches
+    -> WHERE ABS(runs_team1 - runs_team2) < 5;
++----------+-------+-------+----------------+
+| match_id | team1 | team2 | run_difference |
++----------+-------+-------+----------------+
+|        2 | RCB   | KKR   |              1 |
+|        3 | CSK   | GT    |              1 |
++----------+-------+-------+----------------+
+2 rows in set (0.01 sec)
+
+mysql> SELECT team1 AS team, SUM(wickets_team1) AS total_wickets_lost
+    -> FROM IPL_Matches
+    -> GROUP BY team1
+    -> ORDER BY total_wickets_lost DESC;
++------+--------------------+
+| team | total_wickets_lost |
++------+--------------------+
+| MI   |                  8 |
+| RCB  |                  8 |
+| GT   |                  6 |
+| CSK  |                  4 |
++------+--------------------+
+4 rows in set (0.00 sec)
+
+mysql> CREATE TABLE IPL_Matches (
+    ->     match_id INT PRIMARY KEY,
+    ->     season INT,
+    ->     team1 VARCHAR(50),
+    ->     team2 VARCHAR(50),
+    ->     winner VARCHAR(50),
+    ->     venue VARCHAR(100),
+    ->     runs_team1 INT,
+    ->     runs_team2 INT,
+    ->     wickets_team1 INT,
+    ->     wickets_team2 INT
+    -> );
+ERROR 1050 (42S01): Table 'ipl_matches' already exists
+mysql>
+mysql> INSERT INTO IPL_Matches VALUES
+    -> (1, 2022, 'MI', 'CSK', 'MI', 'Wankhede Stadium', 180, 175, 5, 6),
+    -> (2, 2022, 'RCB', 'KKR', 'KKR', 'Eden Gardens', 150, 151, 8, 7),
+    -> (3, 2023, 'CSK', 'GT', 'GT', 'Narendra Modi Stadium', 200, 201, 4, 3),
+    -> (4, 2023, 'MI', 'RCB', 'MI', 'Wankhede Stadium', 190, 185, 3, 5),
+    -> (5, 2023, 'GT', 'KKR', 'GT', 'Eden Gardens', 170, 165, 6, 7);
+ERROR 1062 (23000): Duplicate entry '1' for key 'ipl_matches.PRIMARY'
+mysql> CREATE TABLE IPL_Player_Stats (
+    ->     player_id INT,
+    ->     match_id INT,
+    ->     player_name VARCHAR(50),
+    ->     team VARCHAR(50),
+    ->     runs_scored INT,
+    ->     wickets_taken INT
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql>
+mysql> INSERT INTO IPL_Player_Stats VALUES
+    -> (101, 1, 'Rohit Sharma', 'MI', 70, 0),
+    -> (102, 1, 'MS Dhoni', 'CSK', 50, 0),
+    -> (103, 2, 'Virat Kohli', 'RCB', 45, 0),
+    -> (104, 2, 'Andre Russell', 'KKR', 30, 3),
+    -> (105, 3, 'Ruturaj Gaikwad', 'CSK', 80, 0),
+    -> (106, 3, 'Shubman Gill', 'GT', 90, 0),
+    -> (107, 4, 'Suryakumar Yadav', 'MI', 65, 0),
+    -> (108, 4, 'Faf du Plessis', 'RCB', 75, 0),
+    -> (109, 5, 'Hardik Pandya', 'GT', 55, 2),
+    -> (110, 5, 'Nitish Rana', 'KKR', 40, 0);
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> SELECT p.player_name, p.runs_scored, m.season
+    -> FROM IPL_Player_Stats p
+    -> JOIN IPL_Matches m ON p.match_id = m.match_id;
++------------------+-------------+--------+
+| player_name      | runs_scored | season |
++------------------+-------------+--------+
+| Rohit Sharma     |          70 |   2022 |
+| MS Dhoni         |          50 |   2022 |
+| Virat Kohli      |          45 |   2022 |
+| Andre Russell    |          30 |   2022 |
+| Ruturaj Gaikwad  |          80 |   2023 |
+| Shubman Gill     |          90 |   2023 |
+| Suryakumar Yadav |          65 |   2023 |
+| Faf du Plessis   |          75 |   2023 |
+| Hardik Pandya    |          55 |   2023 |
+| Nitish Rana      |          40 |   2023 |
++------------------+-------------+--------+
+10 rows in set (0.01 sec)
+
+mysql> SELECT player_name, SUM(runs_scored) AS total_runs
+    -> FROM IPL_Player_Stats
+    -> GROUP BY player_name
+    -> ORDER BY total_runs DESC;
++------------------+------------+
+| player_name      | total_runs |
++------------------+------------+
+| Shubman Gill     |         90 |
+| Ruturaj Gaikwad  |         80 |
+| Faf du Plessis   |         75 |
+| Rohit Sharma     |         70 |
+| Suryakumar Yadav |         65 |
+| Hardik Pandya    |         55 |
+| MS Dhoni         |         50 |
+| Virat Kohli      |         45 |
+| Nitish Rana      |         40 |
+| Andre Russell    |         30 |
++------------------+------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT m.match_id, p.player_name, p.runs_scored
+    -> FROM IPL_Player_Stats p
+    -> JOIN IPL_Matches m ON p.match_id = m.match_id
+    -> WHERE p.runs_scored = (
+    ->     SELECT MAX(runs_scored)
+    ->     FROM IPL_Player_Stats
+    ->     WHERE match_id = m.match_id
+    -> );
++----------+----------------+-------------+
+| match_id | player_name    | runs_scored |
++----------+----------------+-------------+
+|        1 | Rohit Sharma   |          70 |
+|        2 | Virat Kohli    |          45 |
+|        3 | Shubman Gill   |          90 |
+|        4 | Faf du Plessis |          75 |
+|        5 | Hardik Pandya  |          55 |
++----------+----------------+-------------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT DISTINCT player_name, wickets_taken
+    -> FROM IPL_Player_Stats
+    -> WHERE wickets_taken > 1;
++---------------+---------------+
+| player_name   | wickets_taken |
++---------------+---------------+
+| Andre Russell |             3 |
+| Hardik Pandya |             2 |
++---------------+---------------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT season, team, runs
+    -> FROM (
+    ->     SELECT season, team1 AS team, runs_team1 AS runs FROM IPL_Matches
+    ->     UNION ALL
+    ->     SELECT season, team2 AS team, runs_team2 AS runs FROM IPL_Matches
+    -> ) AS all_scores
+    -> WHERE season = 2023
+    -> ORDER BY runs DESC
+    -> LIMIT 1;
++--------+------+------+
+| season | team | runs |
++--------+------+------+
+|   2023 | GT   |  201 |
++--------+------+------+
+1 row in set (0.00 sec)
+
+mysql> SELECT p.team, SUM(p.runs_scored) AS total_runs
+    -> FROM IPL_Player_Stats p
+    -> GROUP BY p.team
+    -> ORDER BY total_runs DESC;
++------+------------+
+| team | total_runs |
++------+------------+
+| GT   |        145 |
+| MI   |        135 |
+| CSK  |        130 |
+| RCB  |        120 |
+| KKR  |         70 |
++------+------------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT DISTINCT m.match_id, m.winner
+    -> FROM IPL_Matches m
+    -> JOIN IPL_Player_Stats p ON m.match_id = p.match_id
+    -> WHERE p.player_name = 'Rohit Sharma';
++----------+--------+
+| match_id | winner |
++----------+--------+
+|        1 | MI     |
++----------+--------+
+1 row in set (0.00 sec)
+
+mysql> SELECT team, player_name, MAX(total_runs) AS highest_runs
+    -> FROM (
+    ->     SELECT team, player_name, SUM(runs_scored) AS total_runs
+    ->     FROM IPL_Player_Stats
+    ->     GROUP BY team, player_name
+    -> ) AS team_scores
+    -> GROUP BY team;
+ERROR 1055 (42000): Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'team_scores.player_name' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
+mysql> SELECT team, player_name, MAX(total_runs) AS highest_runs
+    -> FROM (
+    ->     SELECT team, player_name, SUM(runs_scored) AS total_runs
+    ->     FROM IPL_Player_Stats
+    ->     GROUP BY team, player_name
+    -> ) AS team_scores
+    -> GROUP BY team;
+ERROR 1055 (42000): Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'team_scores.player_name' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by
+mysql> SELECT player_name, AVG(runs_scored) AS avg_runs
+    -> FROM IPL_Player_Stats
+    -> GROUP BY player_name
+    -> ORDER BY avg_runs DESC;
++------------------+----------+
+| player_name      | avg_runs |
++------------------+----------+
+| Shubman Gill     |  90.0000 |
+| Ruturaj Gaikwad  |  80.0000 |
+| Faf du Plessis   |  75.0000 |
+| Rohit Sharma     |  70.0000 |
+| Suryakumar Yadav |  65.0000 |
+| Hardik Pandya    |  55.0000 |
+| MS Dhoni         |  50.0000 |
+| Virat Kohli      |  45.0000 |
+| Nitish Rana      |  40.0000 |
+| Andre Russell    |  30.0000 |
++------------------+----------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT player_name, SUM(wickets_taken) AS total_wickets, COUNT(DISTINCT match_id) AS matches_played
+    -> FROM IPL_Player_Stats
+    -> GROUP BY player_name
+    -> ORDER BY total_wickets DESC;
++------------------+---------------+----------------+
+| player_name      | total_wickets | matches_played |
++------------------+---------------+----------------+
+| Andre Russell    |             3 |              1 |
+| Hardik Pandya    |             2 |              1 |
+| Faf du Plessis   |             0 |              1 |
+| MS Dhoni         |             0 |              1 |
+| Nitish Rana      |             0 |              1 |
+| Rohit Sharma     |             0 |              1 |
+| Ruturaj Gaikwad  |             0 |              1 |
+| Shubman Gill     |             0 |              1 |
+| Suryakumar Yadav |             0 |              1 |
+| Virat Kohli      |             0 |              1 |
++------------------+---------------+----------------+
+10 rows in set (0.01 sec)
+
+mysql>
